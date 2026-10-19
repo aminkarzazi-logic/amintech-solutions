@@ -15,8 +15,8 @@ Desenvolvendo aplicações Java inteligentes com IA para automatizar processos e
 | Módulo | Descrição | Status |
 |--------|-----------|--------|
 | [`01-java-spring-basics`](./01-java-spring-basics) | Fundamentos de Java, OOP e primeira API REST com Spring Boot | ✅ Concluído |
-| [`01b-java-spring-avancada`](./01b-java-spring-avancada) | CRUD completo, validação e banco de dados | ✅ Concluído |
-| [`02-llm-integrations`](./02-llm-integrations) | Integração de aplicações Java com modelos de IA (LLMs) via API | 🚧 Em andamento |
+| [`01b-java-spring-avancada`](./01b-java-spring-avancada) | CRUD completo, validação e banco de dados | 🚧 Em andamento |
+| [`02-llm-integrations`](./02-llm-integrations) | Integração de aplicações Java com modelos de IA (LLMs) via API | 📋 Planejado |
 | [`03-rag-systems`](./03-rag-systems) | Sistemas de RAG (Retrieval-Augmented Generation) | 📋 Planejado |
 | [`04-ai-agents`](./04-ai-agents) | Agentes de IA com ferramentas, memória e automação | 📋 Planejado |
 

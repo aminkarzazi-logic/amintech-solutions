@@ -1,7 +1,7 @@
 # AminTech — Soluções Inteligentes com IA
 
 Desenvolvendo aplicações Java inteligentes com IA para automatizar processos e transformar negócios.
-🔗 **[Ver portfólio ao vivo](https://amintech-solutions.github.io/ia-solutions/)**
+🔗 **[Ver portfólio ao vivo](https://aminkarzazi-logic.github.io/amintech-solutions/)**
 
 ## 🚀 Tecnologias Estudadas e Aplicadas
 

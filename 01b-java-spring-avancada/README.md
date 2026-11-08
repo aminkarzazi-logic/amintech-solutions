@@ -1,4 +1,4 @@
-Módulo 01b - API REST completa com Spring Boot (CRUD, validação e banco de dados)
+#Módulo 01b - API REST completa com Spring Boot (CRUD, validação e banco de dados)
 Continuação do módulo 01. Aqui a API deixa de só ler dados fixos: ela cria, lê, atualiza e apaga produtos (CRUD), valida os dados recebidos, trata erros com mensagens claras e guarda tudo em um banco de dados H2.
 O que este projeto mostra
 CRUD completo: os quatro métodos HTTP (`GET`, `POST`, `PUT`, `DELETE`) em `ProdutoController`.
@@ -6,7 +6,7 @@ Banco de dados com JPA: `Produto` é uma entidade (`@Entity`) e `ProdutoReposito
 Validação: `@NotBlank`, `@Positive` e `@PositiveOrZero` impedem dados inválidos.
 Tratamento de erros: `GlobalExceptionHandler` devolve 400 (dados inválidos) e 404 (produto não existe) em JSON.
 Painel de teste: uma página HTML em `/` para testar a API pelo navegador.
-Estrutura
+##Estrutura
 ```
 01b-java-spring-avancada/
 ├── pom.xml
@@ -25,13 +25,13 @@ Estrutura
     │       └── static/index.html
     └── test/java/com/amintech/springavancada/SpringAvancadaApplicationTests.java
 ```
-Como executar
+##Como executar
 Pré-requisitos: Java 17 ou mais novo e Maven. Dentro desta pasta:
     mvn spring-boot:run
 
-Antes de rodar, pare o módulo 01 (Ctrl + C), porque os dois usam a porta 8080.
+@@Antes de rodar, pare o módulo 01 (Ctrl + C), porque os dois usam a porta 8080.
 Endpoints
-Método	Rota	O que faz	Resposta
+##Método	Rota	O que faz	Resposta
 GET	`/produtos`	Lista os produtos (aceita `?nome=texto`)	200
 GET	`/produtos/{id}`	Busca um produto	200 ou 404
 POST	`/produtos`	Cria um produto	201 ou 400
@@ -41,7 +41,7 @@ GET	`/produtos/valor-total`	Soma preço x quantidade de todos os produtos	200
 Exemplo de corpo (JSON) para `POST` e `PUT`:
     {"nome": "Webcam HD", "preco": 199.90, "quantidade": 15}
 
-Como testar
+##Como testar
 Painel de teste: `http://localhost:8080/`
 Console do banco: `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:amintech`, usuário `sa`, senha em branco)
 Testes automáticos: `mvn test`

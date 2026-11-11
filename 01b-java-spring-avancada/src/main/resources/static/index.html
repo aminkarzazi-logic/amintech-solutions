@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de teste: API de produtos</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;max-width:46rem;margin:1rem auto;padding:0 1rem;line-height:1.5}
+  form{display:grid;gap:.6rem;margin:1rem 0}
+  label{display:grid;gap:.2rem}
+  input,button{font:inherit;padding:.5rem}
+  table{width:100%;border-collapse:collapse;margin-top:.5rem}
+  th,td{border:1px solid #bbb;padding:.4rem;text-align:left}
+  td button{margin-right:.3rem}
+  .ok{color:#14753a}.erro{color:#b3261e}
+  @media (max-width:520px){th,td{font-size:.85rem}}
+</style>
+</head>
+<body>
+<h1>Painel de teste: API de produtos</h1>
+<p>Use esta página para testar a API (criar, listar, editar e apagar) sem instalar nenhuma ferramenta.</p>
+
+<form id="form">
+  <input type="hidden" id="id">
+  <label>Nome <input id="nome"></label>
+  <label>Preço <input id="preco" type="number" step="0.01"></label>
+  <label>Quantidade <input id="quantidade" type="number" step="1"></label>
+  <button type="submit">Salvar</button>
+  <button type="button" id="cancelar" hidden>Cancelar edição</button>
+</form>
+<p id="mensagem" role="status"></p>
+
+<label>Buscar pelo nome <input id="busca" placeholder="Ex.: mouse"></label>
+<table>
+  <thead><tr><th>Id</th><th>Nome</th><th>Preço</th><th>Qtd.</th><th>Ações</th></tr></thead>
+  <tbody id="corpo"></tbody>
+</table>
+<p id="total"></p>
+
+<script>
+const URL_API = "/produtos";
+const $ = id => document.getElementById(id);
+
+function aviso(texto, erro) {
+  $("mensagem").textContent = texto;
+  $("mensagem").className = erro ? "erro" : "ok";
+}
+
+async function lerJson(res) {
+  try { return await res.json(); } catch (e) { return null; }
+}
+
+async function carregar() {
+  const busca = $("busca").value.trim();
+  const res = await fetch(URL_API + (busca ? "?nome=" + encodeURIComponent(busca) : ""));
+  const lista = await res.json();
+  const corpo = $("corpo");
+  corpo.replaceChildren();
+  lista.forEach(p => {
+    const tr = document.createElement("tr");
+    [p.id, p.nome, p.preco.toFixed(2), p.quantidade].forEach(v => {
+      const td = document.createElement("td");
+      td.textContent = v;
+      tr.appendChild(td);
+    });
+    const acoes = document.createElement("td");
+    const editarBtn = document.createElement("button");
+    editarBtn.textContent = "Editar";
+    editarBtn.onclick = () => editar(p);
+    const apagarBtn = document.createElement("button");
+    apagarBtn.textContent = "Apagar";
+    apagarBtn.onclick = () => apagar(p.id);
+    acoes.append(editarBtn, apagarBtn);
+    tr.appendChild(acoes);
+    corpo.appendChild(tr);
+  });
+  const t = await (await fetch(URL_API + "/valor-total")).json();
+  $("total").textContent = "Valor total do estoque: R$ " + t.valorTotalEstoque.toFixed(2);
+}
+
+function limpar() {
+  $("form").reset();
+  $("id").value = "";
+  $("cancelar").hidden = true;
+}
+
+function editar(p) {
+  $("id").value = p.id;
+  $("nome").value = p.nome;
+  $("preco").value = p.preco;
+  $("quantidade").value = p.quantidade;
+  $("cancelar").hidden = false;
+  aviso("Editando o produto " + p.id + ".", false);
+}
+
+async function apagar(id) {
+  if (!confirm("Apagar o produto " + id + "?")) return;
+  const res = await fetch(URL_API + "/" + id, { method: "DELETE" });
+  if (res.ok) { aviso("Produto apagado.", false); carregar(); }
+  else { const d = await lerJson(res); aviso("Erro " + res.status + ": " + Object.values(d || {}).join(" | "), true); }
+}
+
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const id = $("id").value;
+  const dados = {
+    nome: $("nome").value,
+    preco: parseFloat($("preco").value),
+    quantidade: parseInt($("quantidade").value, 10)
+  };
+  const res = await fetch(id ? URL_API + "/" + id : URL_API, {
+    method: id ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dados)
+  });
+  const corpo = await lerJson(res);
+  if (res.ok) {
+    aviso(id ? "Produto atualizado." : "Produto criado.", false);
+    limpar();
+    carregar();
+  } else {
+    aviso("Erro " + res.status + ": " + Object.values(corpo || {}).join(" | "), true);
+  }
+});
+
+$("cancelar").addEventListener("click", () => { limpar(); aviso("", false); });
+$("busca").addEventListener("input", carregar);
+carregar();
+</script>
+</body>
+</html>

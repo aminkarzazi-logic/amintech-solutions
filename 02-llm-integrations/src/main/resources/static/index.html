@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de teste: perguntar ao modelo de IA</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;max-width:44rem;margin:1rem auto;padding:0 1rem;line-height:1.5}
+  textarea{width:100%;min-height:6rem;font:inherit;padding:.5rem;box-sizing:border-box}
+  button{font:inherit;padding:.5rem 1.2rem;margin-top:.5rem}
+  #resposta{white-space:pre-wrap;border:1px solid #bbb;border-radius:.4rem;padding:.8rem;margin-top:1rem;min-height:3rem}
+  .erro{color:#b3261e}.info{color:#555}
+</style>
+</head>
+<body>
+<h1>Perguntar ao modelo de IA</h1>
+<p id="status" class="info">Carregando configuração...</p>
+<label for="pergunta">Sua pergunta</label>
+<textarea id="pergunta" placeholder="Ex.: Explique o que é Spring Boot em duas frases."></textarea>
+<button id="enviar" type="button">Perguntar</button>
+<div id="resposta" aria-live="polite"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function carregarStatus() {
+  const s = await (await fetch("/status")).json();
+  $("status").textContent = "Provedor: " + s.provedor + " | Modelo: " + s.modelo + " | Chave configurada: " + (s.chaveConfigurada ? "sim" : "não");
+}
+
+async function perguntar() {
+  const caixa = $("resposta");
+  caixa.className = "info";
+  caixa.textContent = "Aguardando resposta...";
+  $("enviar").disabled = true;
+  try {
+    const res = await fetch("/perguntar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pergunta: $("pergunta").value })
+    });
+    const dados = await res.json();
+    if (res.ok) {
+      caixa.className = "";
+      caixa.textContent = dados.resposta;
+    } else {
+      caixa.className = "erro";
+      caixa.textContent = "Erro " + res.status + ": " + Object.values(dados).join(" | ");
+    }
+  } catch (e) {
+    caixa.className = "erro";
+    caixa.textContent = "Não foi possível falar com o servidor. Ele está rodando?";
+  }
+  $("enviar").disabled = false;
+}
+
+$("enviar").addEventListener("click", perguntar);
+carregarStatus();
+</script>
+</body>
+</html>

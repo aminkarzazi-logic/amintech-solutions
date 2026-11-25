@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projeto 03 - Sistema RAG</title>
+<style>
+  :root { --bg:#f4f5fb; --card:#ffffff; --text:#1d2033; --muted:#6b7090; --line:#e3e5f2;
+          --accent:#6c5ce7; --accent2:#8e7dff; --bot:#eef0fb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12131c; --card:#1b1d2b; --text:#eceeff; --muted:#9a9fc4; --line:#2a2d42; --bot:#242739; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  header { background: linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff; padding:30px 20px 48px; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  header h1 { margin:0 0 6px; font-size:1.7rem; }
+  header p { margin:0; opacity:.9; }
+  .pills { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
+  .pill { background:rgba(255,255,255,.2); padding:5px 13px; border-radius:99px; font-size:.82rem; }
+  main { max-width:1100px; margin:-28px auto 40px; padding:0 20px; display:grid; grid-template-columns:3fr 2fr; gap:20px; }
+  @media (max-width:800px) { main { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:0 8px 24px rgba(40,40,90,.1); }
+  .card h2 { margin:0 0 12px; font-size:1.05rem; }
+  #chat { height:380px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:4px; }
+  .msg { max-width:85%; padding:10px 14px; border-radius:14px; line-height:1.45; white-space:pre-wrap; }
+  .msg.user { align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
+  .msg.bot { align-self:flex-start; background:var(--bot); border-bottom-left-radius:4px; }
+  .msg.wait { opacity:.6; font-style:italic; }
+  .msg.erro { background:#ffe3e3; color:#9b1c1c; }
+  .vazio { color:var(--muted); text-align:center; margin:auto; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+  .chip { border:1px solid var(--line); background:transparent; color:var(--accent); padding:6px 12px; border-radius:99px; cursor:pointer; font-size:.85rem; }
+  .chip:hover { background:var(--bot); }
+  form { display:flex; gap:8px; }
+  input { flex:1; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:1rem; }
+  button.enviar { padding:0 20px; border:0; border-radius:12px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  .fonte { border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; }
+  .fonte strong { font-size:.88rem; }
+  .fonte p { margin:8px 0 0; font-size:.85rem; color:var(--muted); line-height:1.4; max-height:96px; overflow:auto; white-space:pre-wrap; }
+  .barra { height:6px; background:var(--bot); border-radius:99px; margin-top:8px; overflow:hidden; }
+  .barra i { display:block; height:100%; background:linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .nota { color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>🔎 Projeto 03 — Sistema RAG</h1>
+    <p>Pergunte algo e veja de quais trechos dos documentos a resposta veio.</p>
+    <div class="pills">
+      <span class="pill" id="p-prov">Provedor: ...</span>
+      <span class="pill" id="p-mod">Modelo: ...</span>
+      <span class="pill" id="p-key">Chave: ...</span>
+      <span class="pill" id="p-docs">...</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>💬 Conversa</h2>
+    <div id="chat"><div class="vazio" id="vazio">Faça uma pergunta ou clique em um exemplo 👇</div></div>
+    <div class="chips">
+      <button class="chip">O que é RAG?</button>
+      <button class="chip">Como guardar a chave de API?</button>
+      <button class="chip">Para que serve o controller?</button>
+    </div>
+    <form id="form">
+      <input id="q" type="text" maxlength="500" placeholder="Digite sua pergunta..." autocomplete="off">
+      <button class="enviar" type="submit">Enviar</button>
+    </form>
+  </section>
+
+  <aside class="card">
+    <h2>📚 Fontes encontradas</h2>
+    <div id="fontes" class="nota">As fontes aparecem aqui depois da primeira pergunta.</div>
+  </aside>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const chat = $('chat'), fontes = $('fontes');
+
+  function add(tipo, texto) {
+    const vazio = $('vazio'); if (vazio) vazio.remove();
+    const d = document.createElement('div');
+    d.className = 'msg ' + tipo;
+    d.textContent = texto;
+    chat.appendChild(d);
+    chat.scrollTop = chat.scrollHeight;
+    return d;
+  }
+
+  async function carregarStatus() {
+    try {
+      const s = await (await fetch('/status')).json();
+      $('p-prov').textContent = 'Provedor: ' + s.provedor;
+      $('p-mod').textContent = 'Modelo: ' + s.modelo;
+      $('p-key').textContent = 'Chave: ' + (s.chaveExiste ? 'sim' : 'não');
+      $('p-docs').textContent = s.documentos + ' documentos · ' + s.trechos + ' trechos';
+    } catch (e) {
+      $('p-prov').textContent = 'Servidor fora do ar';
+    }
+  }
+
+  function mostrarFontes(lista) {
+    fontes.replaceChildren();
+    fontes.className = '';
+    if (!lista.length) { fontes.className = 'nota'; fontes.textContent = 'Nenhum trecho encontrado.'; return; }
+    const max = Math.max(...lista.map(t => t.pontuacao)) || 1;
+    lista.forEach(t => {
+      const c = document.createElement('div'); c.className = 'fonte';
+      const h = document.createElement('strong'); h.textContent = t.documento + ' · trecho ' + t.posicao;
+      const barra = document.createElement('div'); barra.className = 'barra';
+      const i = document.createElement('i'); i.style.width = Math.round(t.pontuacao / max * 100) + '%';
+      barra.appendChild(i);
+      const p = document.createElement('p'); p.textContent = t.texto;
+      c.append(h, barra, p);
+      fontes.appendChild(c);
+    });
+  }
+
+  async function perguntar(texto) {
+    texto = texto.trim();
+    if (!texto) return;
+    add('user', texto);
+    $('q').value = '';
+    const espera = add('bot', 'Procurando nos documentos…');
+    espera.classList.add('wait');
+    try {
+      const r = await fetch('/perguntar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pergunta: texto })
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.erro || ('Erro ' + r.status));
+      espera.classList.remove('wait');
+      espera.textContent = j.resposta;
+      mostrarFontes(j.fontes);
+    } catch (e) {
+      espera.classList.remove('wait');
+      espera.classList.add('erro');
+      espera.textContent = 'Erro: ' + e.message;
+    }
+  }
+
+  $('form').addEventListener('submit', e => { e.preventDefault(); perguntar($('q').value); });
+  document.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => perguntar(b.textContent)));
+  carregarStatus();
+</script>
+</body>
+</html>
